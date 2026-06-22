@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PocketPlan – Dashboard + Insights</title>
+<title>PocketPlan – Google Login + Cloud Sync</title>
 <style>
 :root{
   --bg:#f3f6f3;
@@ -49,6 +49,11 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
 .nav-btn{border:0;background:transparent;color:#8b958e;display:grid;justify-items:center;gap:3px;font-size:10.5px;font-weight:650;padding:8px 0}.nav-btn .ico{font-size:19px;line-height:19px}.nav-btn.active{color:#079851}.nav-btn.add .ico{display:grid;place-items:center;width:52px;height:52px;margin-top:-28px;background:var(--green);color:#fff;border-radius:50%;font-size:32px;box-shadow:0 9px 18px rgba(2,145,77,.33)}.nav-btn.add{color:transparent}
 .modal{position:fixed;inset:0;background:rgba(9,24,14,.48);z-index:100;display:none;align-items:flex-end;justify-content:center}.modal.open{display:flex}.sheet{width:min(100%,470px);background:#fff;border-radius:28px 28px 0 0;padding:12px 18px calc(22px + env(safe-area-inset-bottom));animation:up .24s ease}@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}.handle{width:42px;height:4px;border-radius:10px;background:#dfe7e1;margin:0 auto 16px}.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.sheet-head h3{margin:0;font-size:18px}.sheet-close{border:0;background:#f1f5f2;width:34px;height:34px;border-radius:50%;font-size:20px;color:#536258}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}.field{display:grid;gap:6px}.field label{font-size:12px;font-weight:700;color:#5b6b60}.field input,.field select{border:1px solid #dce8df;border-radius:13px;padding:12px 13px;background:#fff;color:#213328;outline:0}
 .toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%) translateY(18px);opacity:0;background:#173525;color:#fff;padding:10px 14px;border-radius:12px;font-size:12px;z-index:110;transition:.25s;box-shadow:0 10px 28px rgba(0,0,0,.22)}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.hidden{display:none!important}
+
+/* Cloud account / Google login */
+.account-card{background:linear-gradient(135deg,#ecfaf1,#fff);border:1px solid #cfebda;border-radius:21px;padding:16px;margin-bottom:12px;box-shadow:0 8px 18px rgba(19,80,42,.06)}
+.account-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.account-kicker{display:block;color:#237848;font-size:11px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}.account-name{display:block;font-size:15px;font-weight:850;color:#173525}.account-email{display:block;margin-top:4px;color:#617469;font-size:12px;line-height:1.35}.cloud-badge{flex:0 0 auto;border-radius:999px;padding:6px 9px;background:#e8f8ee;color:#197446;font-size:10.5px;font-weight:850}.cloud-badge.warning{background:#fff1df;color:#a96600}.cloud-badge.error{background:#fff0f0;color:#b84c4c}.account-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.account-actions .primary,.account-actions .secondary{padding:11px 10px;font-size:12px}.account-actions .wide{grid-column:1/-1}.google-mark{display:inline-block;font-weight:950;margin-right:5px}.sync-help{margin:11px 0 0;font-size:11.5px;line-height:1.42;color:#63766a}.sync-help code{font-size:10.5px;background:#f0f6f2;padding:2px 4px;border-radius:4px}.auth-note{font-size:12px;color:#5c6f61;line-height:1.4;margin:0 0 12px}.hidden-btn{display:none!important}
+
 @media(max-width:360px){.app{padding-left:12px;padding-right:12px}.hero .amount,.green-card .amount{font-size:32px}}
 </style>
 </head>
@@ -149,13 +154,29 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
   </section>
 
   <section id="profile" class="view">
+    <div class="account-card">
+      <div class="account-top">
+        <div>
+          <span class="account-kicker">Cloud Account</span>
+          <strong class="account-name" id="accountName">Not signed in</strong>
+          <span class="account-email" id="accountEmail">Use your Google or Gmail account to save this tracker across browsers and devices.</span>
+        </div>
+        <span class="cloud-badge" id="cloudBadge">Local only</span>
+      </div>
+      <div class="account-actions">
+        <button class="primary wide" id="syncBtn"><span class="google-mark">G</span>Continue with Google</button>
+        <button class="secondary hidden-btn" id="syncNowBtn">↻ Sync now</button>
+        <button class="secondary hidden-btn" id="signOutBtn">Sign out</button>
+      </div>
+      <p class="sync-help" id="syncValue">Sign in once, then open the hosted app in another browser and use the same Google/Gmail account.</p>
+    </div>
+
     <div class="card">
       <div class="setting"><div><b>Display Name</b><small id="nameValue">Friend</small></div><button id="changeNameBtn">Edit</button></div>
       <div class="setting"><div><b>Monthly Budget</b><small id="budgetValue">Not set yet</small></div><button id="profileBudgetBtn">Set</button></div>
-      <div class="setting"><div><b>Cloud Sync</b><small id="syncValue">Sign in to save data across your devices</small></div><button id="syncBtn">Sign in</button></div>
       <div class="setting"><div><b>Export Backup</b><small>Download all tracker data</small></div><button id="backupBtn">Export</button></div>
       <div class="setting"><div><b>Restore Backup</b><small>Load a previous .json backup</small></div><label><button type="button">Restore</button><input class="hidden" type="file" id="restoreInput" accept=".json"></label></div>
-      <div class="setting"><div><b>Reset App</b><small>Delete all local records</small></div><button id="resetBtn" style="background:#fff0f0;color:#bc4d4d">Reset</button></div>
+      <div class="setting"><div><b>Reset App</b><small>Delete all local records on this browser</small></div><button id="resetBtn" style="background:#fff0f0;color:#bc4d4d">Reset</button></div>
     </div>
   </section>
 </div>
@@ -187,14 +208,17 @@ import {
   signInWithPopup,
   signInWithRedirect,
   signOut,
-  getRedirectResult
+  getRedirectResult,
+  setPersistence,
+  browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 import {
   getFirestore,
   doc,
   getDoc,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
 // Firebase configuration from your project
@@ -214,7 +238,7 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-// Analytics is optional and should not block the budget tracker if unavailable.
+// Analytics is optional. The tracker and login still work without it.
 try { getAnalytics(app); } catch (error) { console.info("Analytics is unavailable in this browser."); }
 
 const categories=[
@@ -246,6 +270,7 @@ let state=normalizeState(JSON.parse(localStorage.getItem(STORAGE)||"null"));
 let currentUser=null;
 let cloudReady=false;
 let cloudSaveTimer=null;
+let unsubscribeCloud=null;
 let currentTab="dashboard";
 let selectedMonth=new Date().toISOString().slice(0,7);
 let formMode="expense";
@@ -253,86 +278,167 @@ const money=n=>new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP",mi
 const id=()=>crypto?.randomUUID?.()||(Date.now().toString(36)+Math.random().toString(36).slice(2));
 const today=()=>new Date().toISOString().slice(0,10);
 const inMonth=item=>(item.date||"").slice(0,7)===selectedMonth;
+const isHosted=()=>location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1";
 
 function saveLocalOnly(){ localStorage.setItem(STORAGE,JSON.stringify(state)); }
-function setCloudStatus(message,buttonText){
-  const label=document.getElementById("syncValue");
-  const button=document.getElementById("syncBtn");
-  if(label) label.textContent=message;
-  if(button && buttonText) button.textContent=buttonText;
-}
 function cloudRef(){ return currentUser ? doc(db,"pocketPlanUsers",currentUser.uid) : null; }
-async function writeCloudState(){
+function updateAccountUI({status="Local only", tone="", name="Not signed in", email="Use your Google or Gmail account to save this tracker across browsers and devices.", signedIn=false}={}){
+  const accountName=document.getElementById("accountName");
+  const accountEmail=document.getElementById("accountEmail");
+  const cloudBadge=document.getElementById("cloudBadge");
+  const loginBtn=document.getElementById("syncBtn");
+  const nowBtn=document.getElementById("syncNowBtn");
+  const signOutBtn=document.getElementById("signOutBtn");
+  if(accountName) accountName.textContent=name;
+  if(accountEmail) accountEmail.textContent=email;
+  if(cloudBadge){ cloudBadge.textContent=status; cloudBadge.className=`cloud-badge${tone?` ${tone}`:""}`; }
+  if(loginBtn) loginBtn.classList.toggle("hidden-btn",signedIn);
+  if(nowBtn) nowBtn.classList.toggle("hidden-btn",!signedIn);
+  if(signOutBtn) signOutBtn.classList.toggle("hidden-btn",!signedIn);
+}
+function setCloudStatus(message,{badge="Local only",tone="",signedIn=Boolean(currentUser)}={}){
+  const label=document.getElementById("syncValue");
+  if(label) label.textContent=message;
+  updateAccountUI({
+    status:badge,
+    tone,
+    name:currentUser?.displayName || currentUser?.email || "Not signed in",
+    email:currentUser?.email || "Use your Google or Gmail account to save this tracker across browsers and devices.",
+    signedIn
+  });
+}
+function humanFirebaseError(error){
+  const code=error?.code||"";
+  if(code==="permission-denied") return "Firestore denied the save. Publish the private Firestore Rules from the setup guide.";
+  if(code==="failed-precondition") return "Create Cloud Firestore in your Firebase project first.";
+  if(code==="unavailable" || code==="network-request-failed") return "No internet connection. Your data is safe on this browser and will sync when online.";
+  if(code==="auth/operation-not-allowed") return "Enable Google in Firebase Authentication → Sign-in method.";
+  if(code==="auth/unauthorized-domain") return `Add ${location.hostname} in Firebase Authentication → Settings → Authorized domains.`;
+  if(code==="auth/popup-blocked") return "Allow popups for this website, then tap Google sign-in again.";
+  if(code==="auth/operation-not-supported-in-this-environment") return "Open the app from GitHub Pages or Firebase Hosting, not directly from Downloads.";
+  if(code==="auth/cancelled-popup-request" || code==="auth/popup-closed-by-user") return "Google sign-in was cancelled.";
+  return "Cloud sync could not finish. Check Firebase setup and try again.";
+}
+async function writeCloudState({immediate=false}={}){
   if(!currentUser || !cloudReady) return;
   try{
-    await setDoc(cloudRef(),{state,updatedAt:serverTimestamp()},{merge:true});
-    setCloudStatus(`Synced as ${currentUser.email||"Google user"}`,"Sign out");
+    await setDoc(cloudRef(),{
+      ownerUid:currentUser.uid,
+      state:normalizeState(state),
+      updatedAt:serverTimestamp(),
+      schemaVersion:2
+    },{merge:true});
+    setCloudStatus("Cloud backup is active. Changes save automatically.",{badge:"Synced",tone:"",signedIn:true});
   }catch(error){
     console.error("Firebase sync failed",error);
-    setCloudStatus("Cloud sync unavailable — data is still saved on this device","Retry");
+    setCloudStatus(humanFirebaseError(error),{badge:"Needs setup",tone:"error",signedIn:true});
+    if(immediate) toast("Sync needs setup — see Profile");
   }
 }
 function queueCloudSave(){
   if(!currentUser || !cloudReady) return;
   clearTimeout(cloudSaveTimer);
-  cloudSaveTimer=setTimeout(writeCloudState,450);
+  cloudSaveTimer=setTimeout(()=>writeCloudState(),550);
 }
 function save(){
   state.updatedAt=Date.now();
   saveLocalOnly();
   queueCloudSave();
 }
-async function loadCloudState(){
+async function reconcileCloud(snapshot){
   if(!currentUser) return;
-  try{
-    setCloudStatus(`Syncing ${currentUser.email||"your account"}…`,"Sign out");
-    const snapshot=await getDoc(cloudRef());
-    if(snapshot.exists() && snapshot.data()?.state){
-      const remoteState=normalizeState(snapshot.data().state);
-      if(remoteState.updatedAt>state.updatedAt){
-        state=remoteState;
-        saveLocalOnly();
-        render();
-        toast("Cloud data loaded");
-      }else{
-        await writeCloudState();
-      }
-    }else{
-      await writeCloudState();
-    }
-  }catch(error){
-    console.error("Could not load cloud data",error);
-    setCloudStatus("Cloud sync unavailable — data is still saved on this device","Retry");
+  if(!snapshot.exists() || !snapshot.data()?.state){
+    // First cloud use: bring this browser's existing records into the user's private document.
+    await writeCloudState();
+    return;
+  }
+  const remoteState=normalizeState(snapshot.data().state);
+  if(remoteState.updatedAt>state.updatedAt){
+    state=remoteState;
+    saveLocalOnly();
+    render();
+    setCloudStatus("Cloud data loaded and kept in sync.",{badge:"Synced",signedIn:true});
+    return;
+  }
+  if(state.updatedAt>remoteState.updatedAt){
+    await writeCloudState();
+  }else{
+    setCloudStatus("Cloud backup is active. Changes save automatically.",{badge:"Synced",signedIn:true});
   }
 }
+function subscribeToCloud(){
+  if(unsubscribeCloud) unsubscribeCloud();
+  if(!currentUser) return;
+  unsubscribeCloud=onSnapshot(cloudRef(),
+    snapshot=>{ reconcileCloud(snapshot).catch(error=>{console.error("Cloud reconciliation failed",error);}); },
+    error=>{
+      console.error("Cloud listener failed",error);
+      setCloudStatus(humanFirebaseError(error),{badge:"Needs setup",tone:"error",signedIn:true});
+    }
+  );
+}
+async function forceSyncNow(){
+  if(!currentUser){ handleCloudButton(); return; }
+  setCloudStatus("Syncing your tracker…",{badge:"Syncing",tone:"warning",signedIn:true});
+  await writeCloudState({immediate:true});
+}
 async function handleCloudButton(){
-  if(currentUser){
-    try{ await signOut(auth); }catch(error){ toast("Could not sign out"); }
+  if(currentUser) return forceSyncNow();
+  if(!isHosted()){
+    setCloudStatus("Google login needs a hosted link. Upload this file to GitHub Pages or Firebase Hosting first.",{badge:"Publish first",tone:"warning",signedIn:false});
+    toast("Publish the app first — do not open from Downloads");
     return;
   }
   try{
     await signInWithPopup(auth,googleProvider);
   }catch(error){
-    // iOS/in-app browsers may block popups; redirect is the fallback.
     if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(error.code)){
-      await signInWithRedirect(auth,googleProvider);
-      return;
+      try{ await signInWithRedirect(auth,googleProvider); return; }
+      catch(redirectError){
+        console.error("Google redirect sign-in failed",redirectError);
+        setCloudStatus(humanFirebaseError(redirectError),{badge:"Login issue",tone:"error",signedIn:false});
+        toast("Google login needs setup");
+        return;
+      }
     }
     console.error("Google sign-in failed",error);
-    toast("Google sign-in was not completed");
+    setCloudStatus(humanFirebaseError(error),{badge:"Login issue",tone:"error",signedIn:false});
+    toast("Google login needs setup");
   }
 }
-function setupCloudSync(){
+async function handleSignOut(){
+  try{ await signOut(auth); toast("Signed out — local data remains on this browser"); }
+  catch(error){ toast("Could not sign out"); }
+}
+async function setupCloudSync(){
   document.getElementById("syncBtn").onclick=handleCloudButton;
-  getRedirectResult(auth).catch(error=>console.warn("Google redirect sign-in error",error));
+  document.getElementById("syncNowBtn").onclick=forceSyncNow;
+  document.getElementById("signOutBtn").onclick=handleSignOut;
+
+  if(!isHosted()){
+    setCloudStatus("You are opening this from Downloads. Local records work, but Google login and cloud saving require a hosted link.",{badge:"Publish first",tone:"warning",signedIn:false});
+  }else{
+    setCloudStatus("Sign in with your Google/Gmail account. Your tracker will appear on other browsers using the same account.",{badge:"Local only",signedIn:false});
+  }
+
+  try { await setPersistence(auth,browserLocalPersistence); }
+  catch(error){ console.warn("Could not set auth persistence",error); }
+
+  getRedirectResult(auth).catch(error=>{
+    console.warn("Google redirect sign-in error",error);
+    setCloudStatus(humanFirebaseError(error),{badge:"Login issue",tone:"error",signedIn:false});
+  });
+
   onAuthStateChanged(auth,async user=>{
     currentUser=user||null;
     cloudReady=Boolean(currentUser);
     if(!currentUser){
-      setCloudStatus("Sign in to save data across your devices","Sign in");
+      if(unsubscribeCloud){ unsubscribeCloud(); unsubscribeCloud=null; }
+      if(isHosted()) setCloudStatus("Sign in with your Google/Gmail account. Your tracker will appear on other browsers using the same account.",{badge:"Local only",signedIn:false});
       return;
     }
-    await loadCloudState();
+    setCloudStatus("Connecting to your private cloud data…",{badge:"Syncing",tone:"warning",signedIn:true});
+    subscribeToCloud();
   });
 }
 function toast(msg="Saved!"){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(window._toast);window._toast=setTimeout(()=>t.classList.remove("show"),1800);}
