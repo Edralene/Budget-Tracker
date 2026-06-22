@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BudgetBloom – Monthly Budget Tracker</title>
+<style>
+:root{
+  --bg:#eef7ef;
+  --panel:#ffffff;
+  --soft:#e2f0e4;
+  --soft2:#f6fbf6;
+  --ink:#19372a;
+  --muted:#6d8175;
+  --green:#4c7a5a;
+  --green2:#79a887;
+  --line:#d8e7da;
+  --warn:#e6a45d;
+  --danger:#ce6a6a;
+  --shadow:0 12px 28px rgba(34,81,49,.09);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;color:var(--ink)}
+button,input,select{font:inherit}
+button{border:0;cursor:pointer}
+.app{min-height:100vh;display:flex}
+.sidebar{width:248px;background:#d6ead9;border-right:1px solid #c5dfca;padding:24px 16px;position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:11px;align-items:center;padding:3px 9px 24px}
+.brand-mark{width:40px;height:40px;border-radius:14px;background:var(--green);display:grid;place-items:center;color:#fff;font-size:20px;font-weight:800}
+.brand b{font-size:19px;letter-spacing:-.4px}
+.brand small{display:block;color:#557360;margin-top:1px}
+.nav{display:grid;gap:7px;margin-top:12px}
+.nav button{background:transparent;color:#315540;text-align:left;padding:12px 13px;border-radius:12px;font-weight:650}
+.nav button.active,.nav button:hover{background:rgba(255,255,255,.78);box-shadow:0 4px 12px rgba(43,94,57,.08)}
+.sidebar-bottom{position:absolute;bottom:24px;left:16px;right:16px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.75);padding:12px;border-radius:14px;color:#5b7462;font-size:12px;line-height:1.45}
+.main{width:calc(100% - 248px);padding:28px;max-width:1600px}
+.topbar{display:flex;gap:14px;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
+.topbar h1{margin:0;font-size:29px;letter-spacing:-1px}
+.topbar p{margin:6px 0 0;color:var(--muted)}
+.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.month-select,.btn{border-radius:12px;padding:10px 13px;background:#fff;border:1px solid var(--line);color:var(--ink);box-shadow:0 2px 7px rgba(24,58,33,.04)}
+.btn.primary{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.soft{background:var(--soft);border-color:var(--soft);color:#27523a}
+.view{display:none}.view.active{display:block}
+.grid-kpis{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+.card{background:var(--panel);border:1px solid #e5eee6;border-radius:18px;box-shadow:var(--shadow)}
+.kpi{padding:18px}
+.kpi-label{color:#6c8172;font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.55px}
+.kpi-value{font-size:27px;font-weight:800;letter-spacing:-.9px;margin-top:10px}
+.kpi-foot{color:#71927a;font-size:12px;margin-top:8px}
+.dashboard-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:17px}
+.section{padding:18px}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.section h2{font-size:16px;margin:0;letter-spacing:-.25px}
+.section small{color:var(--muted)}
+.budget-list{display:grid;gap:11px}
+.budget-row{display:grid;grid-template-columns:minmax(130px,1fr) 120px 120px 55px;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid #edf3ee}
+.budget-row:last-child{border-bottom:0}
+.category{font-weight:700;display:flex;gap:9px;align-items:center}
+.dot{width:10px;height:10px;background:var(--green2);border-radius:999px;flex:0 0 auto}
+.amount{font-weight:750;text-align:right}
+.muted{color:var(--muted);font-size:12px}
+.progress{height:9px;background:#edf4ee;border-radius:999px;overflow:hidden}
+.progress>i{display:block;height:100%;background:var(--green2);border-radius:999px}
+.progress.over>i{background:var(--danger)}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quick button{background:var(--soft2);border:1px solid var(--line);padding:17px;border-radius:14px;text-align:left;color:#254d36}
+.quick strong{display:block;font-size:14px;margin-bottom:4px}
+.quick span{font-size:12px;color:var(--muted)}
+.goal{padding:13px 0;border-bottom:1px solid #edf3ee}.goal:last-child{border:0}
+.goal-line{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13px;font-weight:700;margin-bottom:8px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:17px;margin-top:17px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:660px}
+th{text-align:left;background:#d8eadb;color:#315540;padding:11px;font-size:12px}
+td{padding:11px;border-bottom:1px solid #edf3ee;font-size:13px}
+td.right{text-align:right}
+.badge{padding:5px 8px;border-radius:999px;background:#edf5ee;color:#356041;font-size:11px;font-weight:750;white-space:nowrap}
+.badge.warning{background:#fff1db;color:#9c6121}
+.badge.danger{background:#ffe5e5;color:#a54646}
+.toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:15px}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap}
+.input, select{padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.search{min-width:210px}
+.empty{padding:35px 16px;text-align:center;color:var(--muted)}
+.modal{position:fixed;inset:0;background:rgba(15,43,25,.38);display:none;align-items:center;justify-content:center;padding:18px;z-index:30}
+.modal.open{display:flex}
+.modal-box{width:min(560px,100%);background:#fff;border-radius:20px;box-shadow:0 22px 70px rgba(16,47,26,.25);overflow:hidden}
+.modal-head{padding:18px 20px;border-bottom:1px solid #edf3ee;display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{margin:0;font-size:17px}
+.close{font-size:21px;background:transparent;color:#67806d}
+.form{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.form .full{grid-column:1/-1}
+.form label{font-size:12px;color:#536c5a;font-weight:700;display:grid;gap:6px}
+.form input,.form select{width:100%}
+.modal-foot{padding:14px 20px 20px;display:flex;justify-content:flex-end;gap:10px}
+.note{font-size:12px;line-height:1.5;color:#5e7564;background:#f4faf4;border:1px dashed #cfe1d2;border-radius:12px;padding:12px}
+.footer{color:#68806e;font-size:12px;padding:18px 2px 0}
+.hidden{display:none!important}
+@media(max-width:1000px){.grid-kpis{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}.main{padding:20px}}
+@media(max-width:760px){
+  .app{display:block}.sidebar{position:sticky;top:0;width:100%;height:auto;padding:10px 12px;z-index:10;display:flex;align-items:center;gap:9px;overflow:auto}.brand{padding:0 4px;white-space:nowrap}.brand small{display:none}.brand-mark{width:34px;height:34px;border-radius:11px}.nav{display:flex;margin:0;gap:5px}.nav button{white-space:nowrap;padding:9px 10px;font-size:12px}.sidebar-bottom{display:none}.main{width:100%;padding:16px}.topbar{display:block}.topbar h1{font-size:24px}.actions{margin-top:14px;justify-content:flex-start}.grid-kpis{grid-template-columns:1fr 1fr;gap:10px}.kpi{padding:14px}.kpi-value{font-size:22px}.dashboard-grid,.two-col{grid-template-columns:1fr}.budget-row{grid-template-columns:minmax(125px,1fr) 76px 76px 42px;font-size:12px;gap:7px}.form{grid-template-columns:1fr}.form .full{grid-column:auto}.quick{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">₱</div>
+      <div><b>BudgetBloom</b><small>Monthly money tracker</small></div>
+    </div>
+    <nav class="nav">
+      <button class="active" data-view="dashboard">⌂ Dashboard</button>
+      <button data-view="income">↗ Income</button>
+      <button data-view="budgets">◫ Budgets</button>
+      <button data-view="expenses">▣ Expenses</button>
+      <button data-view="goals">◎ Savings Goals</button>
+      <button data-view="reports">▥ Reports</button>
+    </nav>
+    <div class="sidebar-bottom">
+      Your data is saved on this device.<br>
+      Use <b>Backup</b> regularly when sharing this template with clients.
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div><h1 id="pageTitle">Monthly Budget Overview</h1><p id="pageSub">Track your money in one place.</p></div>
+      <div class="actions">
+        <select class="month-select" id="monthSelect"></select>
+        <button class="btn" id="backupBtn">↓ Backup</button>
+        <label class="btn" style="cursor:pointer">↑ Restore<input type="file" id="restoreFile" accept=".json" class="hidden"></label>
+        <button class="btn primary" id="quickAdd">＋ Add Entry</button>
+      </div>
+    </div>
+
+    <section id="dashboard" class="view active">
+      <div class="grid-kpis">
+        <div class="card kpi"><div class="kpi-label">Monthly Income</div><div class="kpi-value" id="kpiIncome">₱0.00</div><div class="kpi-foot" id="incomeCount">0 income entries</div></div>
+        <div class="card kpi"><div class="kpi-label">Total Budget</div><div class="kpi-value" id="kpiBudget">₱0.00</div><div class="kpi-foot">Planned spending</div></div>
+        <div class="card kpi"><div class="kpi-label">Actual Expenses</div><div class="kpi-value" id="kpiSpent">₱0.00</div><div class="kpi-foot" id="expenseCount">0 expense entries</div></div>
+        <div class="card kpi"><div class="kpi-label">Remaining Balance</div><div class="kpi-value" id="kpiBalance">₱0.00</div><div class="kpi-foot" id="balanceNote">Income less expenses</div></div>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="card section">
+          <div class="section-head"><div><h2>Budgeted vs. Actual</h2><small>Monthly spending breakdown</small></div><button class="btn soft" data-open="budget">Manage budgets</button></div>
+          <div class="budget-list" id="dashboardBudgets"></div>
+        </div>
+        <div class="card section">
+          <div class="section-head"><div><h2>Quick Actions</h2><small>Update your tracker fast</small></div></div>
+          <div class="quick">
+            <button data-open="income"><strong>＋ Add income</strong><span>Salary, freelance, allowance</span></button>
+            <button data-open="expense"><strong>＋ Add expense</strong><span>Record today’s spending</span></button>
+            <button data-open="budget"><strong>＋ Set budget</strong><span>Plan a category amount</span></button>
+            <button data-open="goal"><strong>＋ Savings goal</strong><span>Track your target money</span></button>
+          </div>
+          <div style="margin-top:16px"><div class="section-head"><div><h2>Savings Goals</h2><small>Your active targets</small></div><button class="btn soft" data-viewjump="goals">View all</button></div><div id="dashboardGoals"></div></div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card section">
+          <div class="section-head"><div><h2>Recent Expenses</h2><small>Latest recorded spending</small></div><button class="btn soft" data-viewjump="expenses">View all</button></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Details</th><th class="right">Amount</th></tr></thead><tbody id="recentExpenses"></tbody></table></div>
+        </div>
+        <div class="card section">
+          <div class="section-head"><div><h2>Money Snapshot</h2><small>Helpful reminders</small></div></div>
+          <div class="note" id="snapshot">Add your monthly income and expenses to see your savings snapshot.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="income" class="view">
+      <div class="card section">
+        <div class="toolbar"><div><h2>Income</h2><small>Salary, side hustle, allowance, and other money received.</small></div><button class="btn primary" data-open="income">＋ Add Income</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Source</th><th>Notes</th><th class="right">Amount</th><th></th></tr></thead><tbody id="incomeTable"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="budgets" class="view">
+      <div class="card section">
+        <div class="toolbar"><div><h2>Monthly Budgets</h2><small>Set how much you plan to spend per category.</small></div><button class="btn primary" data-open="budget">＋ Set Budget</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Category</th><th class="right">Budget</th><th class="right">Spent</th><th class="right">Remaining</th><th>Usage</th><th></th></tr></thead><tbody id="budgetTable"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="expenses" class="view">
+      <div class="card section">
+        <div class="toolbar">
+          <div><h2>Expenses</h2><small>Track every payment and purchase.</small></div>
+          <div class="filter-row"><select id="expenseCategoryFilter" class="input"><option value="">All categories</option></select><input id="expenseSearch" class="input search" placeholder="Search details..."><button class="btn primary" data-open="expense">＋ Add Expense</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Details</th><th>Payment Method</th><th class="right">Amount</th><th></th></tr></thead><tbody id="expenseTable"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="goals" class="view">
+      <div class="card section">
+        <div class="toolbar"><div><h2>Savings Goals</h2><small>Build up your emergency fund, travel fund, or big purchase.</small></div><button class="btn primary" data-open="goal">＋ Add Goal</button></div>
+        <div id="goalsGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px"></div>
+      </div>
+    </section>
+
+    <section id="reports" class="view">
+      <div class="grid-kpis">
+        <div class="card kpi"><div class="kpi-label">Savings Rate</div><div class="kpi-value" id="rSavingsRate">0%</div><div class="kpi-foot">Remaining balance ÷ income</div></div>
+        <div class="card kpi"><div class="kpi-label">Largest Expense</div><div class="kpi-value" id="rLargest">—</div><div class="kpi-foot" id="rLargestMeta">No expense yet</div></div>
+        <div class="card kpi"><div class="kpi-label">Top Category</div><div class="kpi-value" id="rTopCat">—</div><div class="kpi-foot" id="rTopCatMeta">No expense yet</div></div>
+        <div class="card kpi"><div class="kpi-label">Budget Health</div><div class="kpi-value" id="rHealth">—</div><div class="kpi-foot">Based on category budgets</div></div>
+      </div>
+      <div class="card section">
+        <div class="section-head"><div><h2>Monthly Summary</h2><small>Use this as your simple money report.</small></div><button class="btn" id="printReport">Print / Save PDF</button></div>
+        <div id="reportSummary" class="note"></div>
+      </div>
+    </section>
+
+    <div class="footer">BudgetBloom template · Standalone HTML edition</div>
+  </main>
+</div>
+
+<div class="modal" id="modal">
+ <div class="modal-box">
+  <div class="modal-head"><h3 id="modalTitle">Add Entry</h3><button class="close" id="closeModal">×</button></div>
+  <form id="entryForm" class="form"></form>
+  <div class="modal-foot"><button class="btn" id="cancelModal" type="button">Cancel</button><button class="btn primary" id="saveModal" type="submit" form="entryForm">Save</button></div>
+ </div>
+</div>
+
+<script>
+const DEFAULT_CATEGORIES=["Rent","Food","Transportation","Shopping","Bills","Miscellaneous"];
+const state = JSON.parse(localStorage.getItem("budgetBloomData")||"null") || {
+  categories: DEFAULT_CATEGORIES,
+  incomes: [],
+  budgets: {},
+  expenses: [],
+  goals: []
+};
+let activeMonth = new Date().toISOString().slice(0,7);
+let modalType = null;
+const fmt = n => new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP",minimumFractionDigits:2}).format(Number(n||0));
+const esc = str => String(str||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+const uid = () => crypto?.randomUUID?.() || Date.now().toString(36)+Math.random().toString(36).slice(2);
+function save(){localStorage.setItem("budgetBloomData",JSON.stringify(state))}
+function monthName(v){let [y,m]=v.split("-");return new Date(+y,+m-1,1).toLocaleDateString("en-PH",{month:"long",year:"numeric"})}
+function byMonth(arr){return arr.filter(x=>(x.date||"").slice(0,7)===activeMonth)}
+function total(arr){return arr.reduce((s,x)=>s+Number(x.amount||0),0)}
+function getIncome(){return total(byMonth(state.incomes))}
+function getExpenses(){return total(byMonth(state.expenses))}
+function getBudget(cat){return Number((state.budgets[activeMonth]||{})[cat]||0)}
+function getSpent(cat){return total(byMonth(state.expenses).filter(x=>x.category===cat))}
+function activeCategories(){return [...new Set([...state.categories,...Object.keys(state.budgets[activeMonth]||{}),...byMonth(state.expenses).map(x=>x.category)])]}
+function selectMonthInit(){
+ const sel=document.getElementById("monthSelect");const months=[];
+ const current = new Date();
+ for(let i=-12;i<=12;i++){const d=new Date(current.getFullYear(),current.getMonth()+i,1);months.push(d.toISOString().slice(0,7))}
+ sel.innerHTML=months.map(m=>`<option value="${m}" ${m===activeMonth?"selected":""}>${monthName(m)}</option>`).join("");
+ sel.onchange=e=>{activeMonth=e.target.value; render()}
+}
+function render(){
+ document.getElementById("pageSub").textContent=monthName(activeMonth)+" • Track your money in one place.";
+ const income=getIncome(), spent=getExpenses(), budget=activeCategories().reduce((s,c)=>s+getBudget(c),0), balance=income-spent;
+ document.getElementById("kpiIncome").textContent=fmt(income);
+ document.getElementById("kpiBudget").textContent=fmt(budget);
+ document.getElementById("kpiSpent").textContent=fmt(spent);
+ document.getElementById("kpiBalance").textContent=fmt(balance);
+ document.getElementById("incomeCount").textContent=`${byMonth(state.incomes).length} income ${byMonth(state.incomes).length===1?"entry":"entries"}`;
+ document.getElementById("expenseCount").textContent=`${byMonth(state.expenses).length} expense ${byMonth(state.expenses).length===1?"entry":"entries"}`;
+ document.getElementById("balanceNote").textContent=balance<0?"You spent more than your income":"Income less expenses";
+ renderDashboardBudgets(); renderGoals(); renderTables(); renderReports();
+}
+function renderDashboardBudgets(){
+ const cats=activeCategories(); const holder=document.getElementById("dashboardBudgets");
+ if(!cats.length){holder.innerHTML='<div class="empty">No categories yet. Set your first budget.</div>';return}
+ holder.innerHTML=cats.map(c=>{let b=getBudget(c),s=getSpent(c),p=b?Math.min(100,s/b*100):0,over=s>b&&b>0;return `<div class="budget-row"><div class="category"><span class="dot"></span>${esc(c)}</div><div class="amount">${fmt(b)}</div><div class="amount">${fmt(s)}</div><div><div class="progress ${over?"over":""}"><i style="width:${p}%"></i></div><div class="muted" style="text-align:right;margin-top:4px">${b?Math.round(s/b*100):0}%</div></div></div>`}).join("");
+}
+function renderGoals(){
+ const goals=state.goals; const dash=document.getElementById("dashboardGoals"), grid=document.getElementById("goalsGrid");
+ const goalsHTML=goals.length?goals.map(g=>{let p=Math.min(100,Number(g.saved||0)/Number(g.target||1)*100);return `<div class="goal"><div class="goal-line"><span>${esc(g.name)}</span><span>${fmt(g.saved)} / ${fmt(g.target)}</span></div><div class="progress"><i style="width:${p}%"></i></div><div class="muted" style="margin-top:7px">${Math.round(p)}% complete${g.deadline?" · Target: "+g.deadline:""}</div></div>`}).join(""):'<div class="empty">No savings goals yet.</div>';
+ dash.innerHTML=goalsHTML;
+ grid.innerHTML=goals.length?goals.map(g=>{let p=Math.min(100,Number(g.saved||0)/Number(g.target||1)*100);return `<div class="card section"><div class="section-head"><h2>${esc(g.name)}</h2><button class="btn soft" onclick="editGoal('${g.id}')">Update</button></div><div style="font-size:25px;font-weight:800">${fmt(g.saved)} <span class="muted">of ${fmt(g.target)}</span></div><div class="progress" style="margin:14px 0 8px"><i style="width:${p}%"></i></div><div class="muted">${Math.round(p)}% complete${g.deadline?" · Target date: "+g.deadline:""}</div><div style="margin-top:14px"><button class="btn" onclick="deleteGoal('${g.id}')">Delete goal</button></div></div>`}).join(""):'<div class="empty">Create a savings goal to start tracking your progress.</div>';
+}
+function renderTables(){
+ const inc=byMonth(state.incomes).sort((a,b)=>b.date.localeCompare(a.date));
+ document.getElementById("incomeTable").innerHTML=inc.length?inc.map(x=>`<tr><td>${x.date}</td><td><b>${esc(x.source)}</b></td><td>${esc(x.notes)}</td><td class="right"><b>${fmt(x.amount)}</b></td><td><button class="btn" onclick="deleteItem('income','${x.id}')">Delete</button></td></tr>`).join(""):'<tr><td colspan="5" class="empty">No income recorded for this month.</td></tr>';
+ const cats=activeCategories(), bt=document.getElementById("budgetTable");
+ bt.innerHTML=cats.length?cats.map(c=>{let b=getBudget(c),s=getSpent(c),rem=b-s,p=b?Math.min(100,s/b*100):0;return `<tr><td><b>${esc(c)}</b></td><td class="right">${fmt(b)}</td><td class="right">${fmt(s)}</td><td class="right" style="color:${rem<0?'#b84c4c':'inherit'}">${fmt(rem)}</td><td><div class="progress"><i style="width:${p}%"></i></div></td><td><button class="btn" onclick="openModal('budget','${encodeURIComponent(c)}')">Edit</button></td></tr>`}).join(""):'<tr><td colspan="6" class="empty">No budget categories yet.</td></tr>';
+ const filter=document.getElementById("expenseCategoryFilter"); let old=filter.value;filter.innerHTML='<option value="">All categories</option>'+activeCategories().map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");filter.value=old;
+ let ex=byMonth(state.expenses).sort((a,b)=>b.date.localeCompare(a.date));let catF=filter.value,q=(document.getElementById("expenseSearch").value||"").toLowerCase();ex=ex.filter(x=>(!catF||x.category===catF)&&(!q||[x.category,x.details,x.payment].join(" ").toLowerCase().includes(q)));
+ document.getElementById("expenseTable").innerHTML=ex.length?ex.map(x=>`<tr><td>${x.date}</td><td><span class="badge">${esc(x.category)}</span></td><td>${esc(x.details)}</td><td>${esc(x.payment||"—")}</td><td class="right"><b>${fmt(x.amount)}</b></td><td><button class="btn" onclick="deleteItem('expense','${x.id}')">Delete</button></td></tr>`).join(""):'<tr><td colspan="6" class="empty">No expenses found.</td></tr>';
+ const recent=byMonth(state.expenses).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);document.getElementById("recentExpenses").innerHTML=recent.length?recent.map(x=>`<tr><td>${x.date}</td><td>${esc(x.category)}</td><td>${esc(x.details)}</td><td class="right"><b>${fmt(x.amount)}</b></td></tr>`).join(""):'<tr><td colspan="4" class="empty">No expenses yet.</td></tr>';
+ const income=getIncome(),spent=getExpenses(),balance=income-spent;document.getElementById("snapshot").innerHTML=income?`For <b>${monthName(activeMonth)}</b>, you received <b>${fmt(income)}</b> and spent <b>${fmt(spent)}</b>. Your current remaining balance is <b>${fmt(balance)}</b>${balance<0?". Try reviewing your biggest expense categories.":"."}`:"Start with an income entry, then record your budget and expenses.";
+}
+function renderReports(){
+ const income=getIncome(),spent=getExpenses(),balance=income-spent,cats=activeCategories(),over=cats.filter(c=>getBudget(c)&&getSpent(c)>getBudget(c));
+ const ex=byMonth(state.expenses), largest=[...ex].sort((a,b)=>b.amount-a.amount)[0];
+ const catTotals=cats.map(c=>({c,n:getSpent(c)})).sort((a,b)=>b.n-a.n);const top=catTotals[0];
+ document.getElementById("rSavingsRate").textContent=income?Math.max(0,balance/income*100).toFixed(1)+"%":"0%";
+ document.getElementById("rLargest").textContent=largest?fmt(largest.amount):"—";document.getElementById("rLargestMeta").textContent=largest?`${largest.category} · ${largest.details||"No details"}`:"No expense yet";
+ document.getElementById("rTopCat").textContent=top&&top.n?top.c:"—";document.getElementById("rTopCatMeta").textContent=top&&top.n?fmt(top.n)+" spent":"No expense yet";
+ document.getElementById("rHealth").textContent=!cats.length?"—":over.length?"Needs review":"On track";
+ document.getElementById("reportSummary").innerHTML=`<b>${monthName(activeMonth)} Summary</b><br><br>Income: <b>${fmt(income)}</b><br>Expenses: <b>${fmt(spent)}</b><br>Remaining balance: <b>${fmt(balance)}</b><br>Budget categories over limit: <b>${over.length}</b>${over.length?" ("+over.map(esc).join(", ")+")":""}<br><br>${balance>=0?"You still have money remaining after recorded expenses.":"Your expenses currently exceed your recorded income. Review the entries and adjust your budget where needed."}`;
+}
+function setView(id){
+ document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
+ document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===id));
+ const maps={dashboard:["Monthly Budget Overview","Track your money in one place."],income:["Income","Record all money coming in."],budgets:["Monthly Budgets","Set spending limits by category."],expenses:["Expenses","Track every payment and purchase."],goals:["Savings Goals","Make progress toward what matters to you."],reports:["Reports","A clear snapshot of your monthly money."]};
+ document.getElementById("pageTitle").textContent=maps[id][0];document.getElementById("pageSub").textContent=maps[id][1];
+}
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
+document.querySelectorAll("[data-viewjump]").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.viewjump)));
+function optionCats(selected=""){return activeCategories().map(c=>`<option ${c===selected?"selected":""}>${esc(c)}</option>`).join("")}
+function openModal(type, selected=""){
+ modalType=type; const modal=document.getElementById("modal"),form=document.getElementById("entryForm");modal.classList.add("open");
+ const today=new Date().toISOString().slice(0,10);
+ const defs={
+ income:{title:"Add Income", fields:`<label>Date<input name="date" type="date" value="${today}" required></label><label>Amount<input name="amount" type="number" min="0" step="0.01" required placeholder="0.00"></label><label>Source<input name="source" required placeholder="e.g. Salary, Allowance, Freelance"></label><label>Notes<input name="notes" placeholder="Optional"></label>`},
+ expense:{title:"Add Expense", fields:`<label>Date<input name="date" type="date" value="${today}" required></label><label>Amount<input name="amount" type="number" min="0" step="0.01" required placeholder="0.00"></label><label>Category<select name="category" required>${optionCats()}</select></label><label>Payment Method<select name="payment"><option>Cash</option><option>GCash</option><option>Bank Transfer</option><option>Debit Card</option><option>Credit Card</option><option>Other</option></select></label><label class="full">Details<input name="details" required placeholder="e.g. Grocery, Meralco bill, Grab ride"></label>`},
+ budget:{title:"Set Monthly Budget", fields:`<label>Category<select name="category" id="budgetCategory">${optionCats(selected?decodeURIComponent(selected):"")}</select></label><label>Budget Amount<input name="amount" type="number" min="0" step="0.01" value="${selected?getBudget(decodeURIComponent(selected)):""}" required placeholder="0.00"></label><label class="full">New category (optional)<input name="newCategory" placeholder="Use this to add a new category"></label>`},
+ goal:{title:"Add Savings Goal", fields:`<label>Goal Name<input name="name" required placeholder="e.g. Emergency Fund"></label><label>Target Amount<input name="target" type="number" min="1" step="0.01" required placeholder="0.00"></label><label>Amount Saved So Far<input name="saved" type="number" min="0" step="0.01" value="0"></label><label>Target Date<input name="deadline" type="date"></label>`}
+ };
+ document.getElementById("modalTitle").textContent=defs[type].title;form.innerHTML=defs[type].fields;
+}
+function closeModal(){document.getElementById("modal").classList.remove("open");modalType=null}
+document.getElementById("closeModal").onclick=closeModal;document.getElementById("cancelModal").onclick=closeModal;
+document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>openModal(b.dataset.open)));
+document.getElementById("quickAdd").onclick=()=>openModal("expense");
+document.getElementById("entryForm").addEventListener("submit",e=>{
+ e.preventDefault(); let d=Object.fromEntries(new FormData(e.target).entries());
+ if(modalType==="income") state.incomes.push({id:uid(),date:d.date,amount:+d.amount,source:d.source,notes:d.notes});
+ if(modalType==="expense") state.expenses.push({id:uid(),date:d.date,amount:+d.amount,category:d.category,payment:d.payment,details:d.details});
+ if(modalType==="budget"){let c=(d.newCategory||"").trim()||d.category;if(!state.categories.includes(c))state.categories.push(c);state.budgets[activeMonth] ||= {};state.budgets[activeMonth][c]=+d.amount}
+ if(modalType==="goal")state.goals.push({id:uid(),name:d.name,target:+d.target,saved:+d.saved,deadline:d.deadline});
+ save();closeModal();render();
+});
+function deleteItem(type,id){if(!confirm("Delete this entry?"))return;if(type==="income")state.incomes=state.incomes.filter(x=>x.id!==id);else state.expenses=state.expenses.filter(x=>x.id!==id);save();render()}
+function deleteGoal(id){if(!confirm("Delete this goal?"))return;state.goals=state.goals.filter(x=>x.id!==id);save();render()}
+function editGoal(id){let g=state.goals.find(x=>x.id===id);if(!g)return;let v=prompt(`Update saved amount for "${g.name}"`,g.saved);if(v===null)return;if(v===""||isNaN(v)||+v<0){alert("Please enter a valid amount.");return}g.saved=+v;save();render()}
+window.deleteItem=deleteItem;window.deleteGoal=deleteGoal;window.editGoal=editGoal;window.openModal=openModal;
+document.getElementById("expenseCategoryFilter").addEventListener("change",renderTables);
+document.getElementById("expenseSearch").addEventListener("input",renderTables);
+document.getElementById("backupBtn").onclick=()=>{let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download="budgetbloom-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(a.href)}
+document.getElementById("restoreFile").addEventListener("change",e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let obj=JSON.parse(r.result);if(!obj||typeof obj!=="object")throw Error();Object.assign(state,obj);save();render();alert("Backup restored successfully.");}catch{alert("That backup file could not be read.")}};r.readAsText(f)});
+document.getElementById("printReport").onclick=()=>window.print();
+selectMonthInit();render();
+</script>
+</body>
+</html>
