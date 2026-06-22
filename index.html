@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>PocketPlan – Google Login + Cloud Sync</title>
+<!-- Updated: consistent forms, fixed mobile scale, notification bell removed -->
 <style>
 :root{
   --bg:#f3f6f3;
@@ -18,13 +19,13 @@
   --shadow:0 12px 32px rgba(20,56,32,.10);
 }
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
 body{margin:0;background:linear-gradient(180deg,#eef8f1 0,#f6f8f6 160px,#f3f6f3 100%);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 button,input,select{font:inherit} button{cursor:pointer}
 .app{width:min(100%,470px);min-height:100dvh;margin:auto;position:relative;background:var(--bg);overflow:hidden;padding:calc(16px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom))}
 @media(min-width:800px){body{padding:24px;background:linear-gradient(135deg,#e6f6ec,#f7fbf8 55%,#e7f1eb)}.app{min-height:calc(100vh - 48px);border-radius:36px;border:8px solid #202620;box-shadow:0 28px 80px rgba(14,61,31,.16)}}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
-.profile{display:flex;align-items:center;gap:11px;min-width:0}.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#fde8d5,#efc293);box-shadow:inset 0 0 0 4px #fff;font-size:24px;flex:0 0 auto}.hello strong{display:block;font-size:17px;line-height:1.1}.hello span{display:block;font-size:13px;color:#657168;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}.icon-btn{border:0;background:#fff;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:18px;color:#33423a;box-shadow:0 5px 16px rgba(20,56,32,.08)}
+header{display:flex;justify-content:flex-start;align-items:center;gap:12px;margin-bottom:18px}
+.profile{display:flex;align-items:center;gap:11px;min-width:0}.avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#fde8d5,#efc293);box-shadow:inset 0 0 0 4px #fff;font-size:24px;flex:0 0 auto}.hello strong{display:block;font-size:17px;line-height:1.1}.hello span{display:block;font-size:13px;color:#657168;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
 .view{display:none;animation:fade .22s ease}.view.active{display:block}@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .hero,.green-card{border-radius:24px;background:linear-gradient(135deg,#09ad5f 0%,#07a054 70%,#09b968 100%);color:#fff;position:relative;overflow:hidden;box-shadow:0 15px 30px rgba(3,145,77,.22)}
 .hero{min-height:142px;padding:18px 20px}.green-card{min-height:170px;padding:22px 20px}
@@ -47,7 +48,7 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
 .setting{padding:13px 0;border-bottom:1px solid #edf1ed;display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:13px}.setting:last-child{border-bottom:0}.setting small{display:block;color:#7d887f;font-size:11px;margin-top:3px}.setting button{border:0;background:#e9f7ee;color:#187347;font-weight:750;padding:7px 10px;border-radius:10px}
 .bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));width:min(calc(100% - 24px),438px);height:72px;background:rgba(255,255,255,.96);border:1px solid #edf0ee;border-radius:26px;box-shadow:0 12px 28px rgba(24,59,34,.13);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;padding:0 7px;z-index:20;backdrop-filter:blur(12px)}
 .nav-btn{border:0;background:transparent;color:#8b958e;display:grid;justify-items:center;gap:3px;font-size:10.5px;font-weight:650;padding:8px 0}.nav-btn .ico{font-size:19px;line-height:19px}.nav-btn.active{color:#079851}.nav-btn.add .ico{display:grid;place-items:center;width:52px;height:52px;margin-top:-28px;background:var(--green);color:#fff;border-radius:50%;font-size:32px;box-shadow:0 9px 18px rgba(2,145,77,.33)}.nav-btn.add{color:transparent}
-.modal{position:fixed;inset:0;background:rgba(9,24,14,.48);z-index:100;display:none;align-items:flex-end;justify-content:center}.modal.open{display:flex}.sheet{width:min(100%,470px);background:#fff;border-radius:28px 28px 0 0;padding:12px 18px calc(22px + env(safe-area-inset-bottom));animation:up .24s ease}@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}.handle{width:42px;height:4px;border-radius:10px;background:#dfe7e1;margin:0 auto 16px}.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.sheet-head h3{margin:0;font-size:18px}.sheet-close{border:0;background:#f1f5f2;width:34px;height:34px;border-radius:50%;font-size:20px;color:#536258}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}.field{display:grid;gap:6px}.field label{font-size:12px;font-weight:700;color:#5b6b60}.field input,.field select{border:1px solid #dce8df;border-radius:13px;padding:12px 13px;background:#fff;color:#213328;outline:0}
+.modal{position:fixed;inset:0;background:rgba(9,24,14,.48);z-index:100;display:none;align-items:flex-end;justify-content:center}.modal.open{display:flex}.sheet{width:min(100%,470px);background:#fff;border-radius:28px 28px 0 0;padding:12px 18px calc(22px + env(safe-area-inset-bottom));animation:up .24s ease}@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}.handle{width:42px;height:4px;border-radius:10px;background:#dfe7e1;margin:0 auto 16px}.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.sheet-head h3{margin:0;font-size:18px}.sheet-close{border:0;background:#f1f5f2;width:36px;height:36px;border-radius:50%;font-size:20px;color:#536258}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;align-items:start}.full{grid-column:1/-1}.field{min-width:0}.field label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:750;color:#5b6b60;line-height:1.2}.field input,.field select{display:block;width:100%;min-width:0;min-height:48px;border:1px solid #dce8df;border-radius:13px;padding:12px 13px;background:#fff;color:#213328;outline:0;font-size:16px;line-height:1.2;appearance:none;-webkit-appearance:none}.field select{appearance:auto;-webkit-appearance:menulist}.field input:focus,.field select:focus{border-color:#09a557;box-shadow:0 0 0 3px rgba(9,165,87,.12)}.form-grid .primary{min-height:50px;margin-top:2px;font-size:14px}
 .toast{position:fixed;left:50%;bottom:95px;transform:translateX(-50%) translateY(18px);opacity:0;background:#173525;color:#fff;padding:10px 14px;border-radius:12px;font-size:12px;z-index:110;transition:.25s;box-shadow:0 10px 28px rgba(0,0,0,.22)}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.hidden{display:none!important}
 
 /* Cloud account / Google login */
@@ -65,6 +66,7 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
 .auth-gate h1{margin:0;font-size:24px;letter-spacing:-.7px;color:#173525}.auth-gate p{margin:10px auto 0;max-width:340px;font-size:13.5px;line-height:1.5;color:#63766a}
 .auth-gate .primary{width:100%;margin-top:22px;min-height:51px;font-size:14px}.auth-gate .primary:disabled{opacity:.72;cursor:wait;box-shadow:none}.auth-gate-error{margin-top:13px;padding:10px 12px;border-radius:13px;background:#fff2f2;color:#aa4040;font-size:11.5px;line-height:1.42;text-align:left}.auth-gate-error.hidden{display:none}.auth-gate-host{margin-top:14px;font-size:10.5px;line-height:1.4;color:#7a8d7f;word-break:break-word}.auth-gate-foot{margin-top:17px;padding-top:15px;border-top:1px solid #edf2ee;font-size:11px;line-height:1.45;color:#7c8e82}
 
+@media(max-width:420px){.form-grid{grid-template-columns:1fr}.form-grid .field{grid-column:1/-1}}
 @media(max-width:360px){.app{padding-left:12px;padding-right:12px}.hero .amount,.green-card .amount{font-size:32px}.auth-gate{padding:16px}.auth-gate-card{padding:24px 18px;border-radius:26px}}
 </style>
 </head>
@@ -91,7 +93,6 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
         <span id="welcomeLine">Welcome, Friend</span>
       </div>
     </div>
-    <button class="icon-btn" id="bellBtn">🔔</button>
   </header>
 
   <section id="dashboard" class="view active">
@@ -1035,7 +1036,7 @@ document.getElementById("recordForm").addEventListener("submit",e=>{
   toast(formMode==="saving" ? "Savings updated!" : "Saved!");
 });
 
-document.getElementById("addExpenseBtn").onclick=()=>openSheet("expense");document.getElementById("addIncomeBtn").onclick=()=>openSheet("income");document.getElementById("setBudgetBtn").onclick=()=>openSheet("budget");document.getElementById("addSavingBtn").onclick=()=>openSheet("saving");document.getElementById("quickAddGoal").onclick=()=>openSheet("goal");document.getElementById("profileBudgetBtn").onclick=()=>openSheet("budget");document.getElementById("changeNameBtn").onclick=()=>{const n=prompt("What name should appear in the app?",state.name);if(n===null)return;state.name=n.trim()||"Friend";save();render();toast("Name updated");};document.getElementById("clearMonthBtn").onclick=()=>{if(!confirm(`Delete all income and expenses for ${monthLabel(selectedMonth)}?`))return;state.expenses=state.expenses.filter(x=>!inMonth(x));state.incomes=state.incomes.filter(x=>!inMonth(x));state.savings=(state.savings||[]).filter(x=>!inMonth(x));save();render();toast("Month cleared");};document.getElementById("bellBtn").onclick=()=>toast("You’re all caught up!");document.getElementById("starterClose").onclick=()=>{state.starterClosed=true;save();render();};document.getElementById("thisMonthBtn").onclick=()=>{selectedMonth=new Date().toISOString().slice(0,7);setupMonthSelect();render();toast("Showing this month");};
+document.getElementById("addExpenseBtn").onclick=()=>openSheet("expense");document.getElementById("addIncomeBtn").onclick=()=>openSheet("income");document.getElementById("setBudgetBtn").onclick=()=>openSheet("budget");document.getElementById("addSavingBtn").onclick=()=>openSheet("saving");document.getElementById("quickAddGoal").onclick=()=>openSheet("goal");document.getElementById("profileBudgetBtn").onclick=()=>openSheet("budget");document.getElementById("changeNameBtn").onclick=()=>{const n=prompt("What name should appear in the app?",state.name);if(n===null)return;state.name=n.trim()||"Friend";save();render();toast("Name updated");};document.getElementById("clearMonthBtn").onclick=()=>{if(!confirm(`Delete all income and expenses for ${monthLabel(selectedMonth)}?`))return;state.expenses=state.expenses.filter(x=>!inMonth(x));state.incomes=state.incomes.filter(x=>!inMonth(x));state.savings=(state.savings||[]).filter(x=>!inMonth(x));save();render();toast("Month cleared");};document.getElementById("starterClose").onclick=()=>{state.starterClosed=true;save();render();};document.getElementById("thisMonthBtn").onclick=()=>{selectedMonth=new Date().toISOString().slice(0,7);setupMonthSelect();render();toast("Showing this month");};
 document.getElementById("backupBtn").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download=`pocketplan-v2-backup-${today()}.json`;a.click();URL.revokeObjectURL(a.href);toast("Backup downloaded");};
 document.getElementById("restoreInput").addEventListener("change",e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const obj=JSON.parse(reader.result);state=normalizeState(obj);save();render();toast("Backup restored");}catch(err){alert("That backup file could not be read.");}};reader.readAsText(file);e.target.value="";});document.getElementById("resetBtn").onclick=()=>{if(!confirm("Delete ALL data saved in this app on this device? This cannot be undone."))return;state=structuredClone(defaultState);save();render();toast("App reset");};
 setupMonthSelect();render();setTab("dashboard");setupCloudSync();
