@@ -54,11 +54,35 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
 .account-card{background:linear-gradient(135deg,#ecfaf1,#fff);border:1px solid #cfebda;border-radius:21px;padding:16px;margin-bottom:12px;box-shadow:0 8px 18px rgba(19,80,42,.06)}
 .account-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.account-kicker{display:block;color:#237848;font-size:11px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}.account-name{display:block;font-size:15px;font-weight:850;color:#173525}.account-email{display:block;margin-top:4px;color:#617469;font-size:12px;line-height:1.35}.cloud-badge{flex:0 0 auto;border-radius:999px;padding:6px 9px;background:#e8f8ee;color:#197446;font-size:10.5px;font-weight:850}.cloud-badge.warning{background:#fff1df;color:#a96600}.cloud-badge.error{background:#fff0f0;color:#b84c4c}.account-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}.account-actions .primary,.account-actions .secondary{padding:11px 10px;font-size:12px}.account-actions .wide{grid-column:1/-1}.google-mark{display:inline-block;font-weight:950;margin-right:5px}.sync-help{margin:11px 0 0;font-size:11.5px;line-height:1.42;color:#63766a}.sync-help code{font-size:10.5px;background:#f0f6f2;padding:2px 4px;border-radius:4px}.origin-line{margin:7px 0 0;font-size:10.5px;line-height:1.35;color:#7c8d82;word-break:break-word}.auth-note{font-size:12px;color:#5c6f61;line-height:1.4;margin:0 0 12px}.hidden-btn{display:none!important}
 
-@media(max-width:360px){.app{padding-left:12px;padding-right:12px}.hero .amount,.green-card .amount{font-size:32px}}
+/* Login-first gate: the dashboard stays hidden until Google login + first cloud load finish. */
+.app.app-locked{display:none}
+.auth-gate{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:linear-gradient(145deg,#e5f7ec 0%,#f8fbf9 50%,#eaf5ee 100%);color:var(--ink)}
+.auth-gate.hidden{display:none!important}
+.auth-gate-card{width:min(100%,430px);background:rgba(255,255,255,.98);border:1px solid #d7eddf;border-radius:30px;padding:28px 24px;box-shadow:0 24px 60px rgba(14,76,39,.16);text-align:center}
+.auth-brand{display:flex;align-items:center;justify-content:center;gap:10px;color:#167443;font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;margin-bottom:22px}
+.auth-brand-mark{width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,#08ae5e,#057b40);color:#fff;display:grid;place-items:center;font-size:20px;box-shadow:0 10px 20px rgba(0,135,67,.22)}
+.auth-illustration{width:84px;height:84px;margin:0 auto 18px;border-radius:26px;display:grid;place-items:center;font-size:43px;background:linear-gradient(135deg,#dcf8e7,#f7fcf8);border:1px solid #cbeed8;box-shadow:inset 0 0 0 7px rgba(255,255,255,.8)}
+.auth-gate h1{margin:0;font-size:24px;letter-spacing:-.7px;color:#173525}.auth-gate p{margin:10px auto 0;max-width:340px;font-size:13.5px;line-height:1.5;color:#63766a}
+.auth-gate .primary{width:100%;margin-top:22px;min-height:51px;font-size:14px}.auth-gate .primary:disabled{opacity:.72;cursor:wait;box-shadow:none}.auth-gate-error{margin-top:13px;padding:10px 12px;border-radius:13px;background:#fff2f2;color:#aa4040;font-size:11.5px;line-height:1.42;text-align:left}.auth-gate-error.hidden{display:none}.auth-gate-host{margin-top:14px;font-size:10.5px;line-height:1.4;color:#7a8d7f;word-break:break-word}.auth-gate-foot{margin-top:17px;padding-top:15px;border-top:1px solid #edf2ee;font-size:11px;line-height:1.45;color:#7c8e82}
+
+@media(max-width:360px){.app{padding-left:12px;padding-right:12px}.hero .amount,.green-card .amount{font-size:32px}.auth-gate{padding:16px}.auth-gate-card{padding:24px 18px;border-radius:26px}}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="auth-gate" id="authGate" role="dialog" aria-modal="true" aria-labelledby="authGateTitle">
+  <div class="auth-gate-card">
+    <div class="auth-brand"><span class="auth-brand-mark">₱</span> PocketPlan</div>
+    <div class="auth-illustration" id="authGateIcon">🔐</div>
+    <h1 id="authGateTitle">Sign in to continue</h1>
+    <p id="authGateMessage">Use your Google or Gmail account first. Your PocketPlan data will then load automatically on this browser.</p>
+    <button class="primary" id="authGateButton" type="button"><span class="google-mark">G</span>Continue with Google</button>
+    <div class="auth-gate-error hidden" id="authGateError"></div>
+    <div class="auth-gate-host" id="authGateHost">Checking app connection…</div>
+    <div class="auth-gate-foot">The dashboard only opens after sign-in and after your private cloud data is ready.</div>
+  </div>
+</div>
+
+<div class="app app-locked" id="appShell" aria-hidden="true">
   <header>
     <div class="profile">
       <div class="avatar">🧑🏻</div>
@@ -352,7 +376,7 @@ function firebaseErrorMessage(error) {
     return "The Firebase API key/configuration is invalid. Re-copy the Web app config from Firebase Project Settings.";
   }
   if (code === "auth/network-request-failed" || code === "unavailable") {
-    return "Network connection failed. Your data is still saved on this browser; try again when online.";
+    return "Network connection failed. Check your internet connection, then try again.";
   }
   if (code === "auth/popup-blocked") {
     return "Your browser blocked the Google window. Allow popups for this site, then tap Continue with Google again.";
@@ -364,7 +388,7 @@ function firebaseErrorMessage(error) {
     return "Open the hosted HTTPS app, not an HTML file from Downloads.";
   }
   if (code === "permission-denied") {
-    return `Firestore denied access. Publish the rule for /${CLOUD_COLLECTION}/{userId}, then sign in again.`;
+    return `Firestore denied access. Publish the rule for /${CLOUD_COLLECTION}/{userId}, then retry.`;
   }
   if (code === "failed-precondition") {
     return "Cloud Firestore has not been created yet. Firebase Console → Firestore Database → Create database.";
@@ -373,7 +397,7 @@ function firebaseErrorMessage(error) {
     return "Firebase project or Firestore database was not found. Check the web app configuration.";
   }
 
-  return `Firebase error: ${code}. Open the browser Console (F12) only if you need the technical detail.`;
+  return `Firebase error: ${code}.`;
 }
 
 function updateAccountUI({
@@ -427,18 +451,87 @@ function setCloudStatus(message, {
   });
 }
 
-function displayFirebaseError(error, context = "Cloud sync") {
+function setGate({
+  title = "Sign in to continue",
+  message = "Use your Google or Gmail account first. Your PocketPlan data will then load automatically on this browser.",
+  button = "Continue with Google",
+  busy = false,
+  error = "",
+  icon = "🔐"
+} = {}) {
+  const gate = document.getElementById("authGate");
+  const titleNode = document.getElementById("authGateTitle");
+  const messageNode = document.getElementById("authGateMessage");
+  const buttonNode = document.getElementById("authGateButton");
+  const errorNode = document.getElementById("authGateError");
+  const iconNode = document.getElementById("authGateIcon");
+  const hostNode = document.getElementById("authGateHost");
+
+  if (gate) gate.classList.remove("hidden");
+  if (titleNode) titleNode.textContent = title;
+  if (messageNode) messageNode.textContent = message;
+  if (iconNode) iconNode.textContent = icon;
+  if (buttonNode) {
+    buttonNode.disabled = busy;
+    buttonNode.innerHTML = busy
+      ? "Please wait…"
+      : `<span class="google-mark">G</span>${button}`;
+  }
+  if (errorNode) {
+    errorNode.textContent = error;
+    errorNode.classList.toggle("hidden", !error);
+  }
+  if (hostNode) {
+    hostNode.textContent = isHosted()
+      ? `Secure app domain: ${currentHost()}`
+      : "This app is currently opened as a local file. Publish it to HTTPS first.";
+  }
+}
+
+function lockApp({ title, message, button, busy, error, icon } = {}) {
+  const shell = document.getElementById("appShell");
+  if (shell) {
+    shell.classList.add("app-locked");
+    shell.setAttribute("aria-hidden", "true");
+  }
+  setGate({ title, message, button, busy, error, icon });
+}
+
+function unlockApp() {
+  const shell = document.getElementById("appShell");
+  const gate = document.getElementById("authGate");
+  if (shell) {
+    shell.classList.remove("app-locked");
+    shell.setAttribute("aria-hidden", "false");
+  }
+  if (gate) gate.classList.add("hidden");
+}
+
+function displayFirebaseError(error, context = "Cloud sync", { lock = false } = {}) {
   const code = errorCode(error);
+  const message = firebaseErrorMessage(error);
   console.error(`${context} failed (${code})`, error);
-  setCloudStatus(`${firebaseErrorMessage(error)} [${code}]`, {
+
+  setCloudStatus(`${message} [${code}]`, {
     badge: context === "Google login" ? "Login issue" : "Sync issue",
     tone: "error",
     signedIn: Boolean(currentUser)
   });
+
+  if (lock) {
+    lockApp({
+      title: context === "Google login" ? "Google login needs setup" : "Cloud connection needs setup",
+      message: "PocketPlan stays locked so your dashboard does not open without your synced account data.",
+      button: currentUser ? "Retry cloud connection" : "Try Google sign-in again",
+      error: `${message} [${code}]`,
+      icon: "⚠️"
+    });
+  }
+
   toast(context === "Google login" ? `Login issue: ${code}` : `Sync issue: ${code}`);
 }
 
-async function writeCloudState({ showToast = false } = {}) {
+async function writeCloudState({ showToast = false, throwOnError = false } = {}) {
   if (!currentUser || !cloudReady) return;
 
   try {
@@ -448,7 +541,7 @@ async function writeCloudState({ showToast = false } = {}) {
         ownerUid: currentUser.uid,
         state: normalizeState(state),
         updatedAt: serverTimestamp(),
-        schemaVersion: 3
+        schemaVersion: 4
       },
       { merge: true }
     );
@@ -460,7 +553,8 @@ async function writeCloudState({ showToast = false } = {}) {
 
     if (showToast) toast("Cloud sync complete");
   } catch (error) {
-    displayFirebaseError(error, "Cloud sync");
+    displayFirebaseError(error, "Cloud sync", { lock: throwOnError });
+    if (throwOnError) throw error;
   }
 }
 
@@ -483,7 +577,8 @@ async function reconcileCloud(snapshot) {
   if (!currentUser) return;
 
   if (!snapshot.exists() || !snapshot.data()?.state) {
-    await writeCloudState();
+    // First use for this Google account: store any existing local PocketPlan data in its own private document.
+    await writeCloudState({ throwOnError: true });
     return;
   }
 
@@ -502,7 +597,7 @@ async function reconcileCloud(snapshot) {
   }
 
   if (state.updatedAt > remoteState.updatedAt) {
-    await writeCloudState();
+    await writeCloudState({ throwOnError: true });
     return;
   }
 
@@ -519,18 +614,35 @@ function subscribeToCloud() {
   }
   if (!currentUser) return;
 
+  let firstSnapshot = true;
   unsubscribeCloud = onSnapshot(
     cloudDocument(),
-    snapshot => {
-      reconcileCloud(snapshot).catch(error => displayFirebaseError(error, "Cloud sync"));
+    async snapshot => {
+      try {
+        await reconcileCloud(snapshot);
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          unlockApp();
+        }
+      } catch (error) {
+        if (firstSnapshot) {
+          firstSnapshot = false;
+          displayFirebaseError(error, "Cloud sync", { lock: true });
+        } else {
+          displayFirebaseError(error, "Cloud sync");
+        }
+      }
     },
-    error => displayFirebaseError(error, "Cloud sync")
+    error => {
+      displayFirebaseError(error, "Cloud sync", { lock: firstSnapshot });
+      firstSnapshot = false;
+    }
   );
 }
 
 async function forceSyncNow() {
   if (!currentUser) {
-    await handleCloudButton();
+    await startGoogleSignIn();
     return;
   }
 
@@ -544,38 +656,62 @@ async function forceSyncNow() {
 
 async function startGoogleSignIn() {
   if (!isHosted()) {
-    setCloudStatus("Google sign-in needs an HTTPS hosted page. Upload this full index.html to GitHub Pages or Firebase Hosting, then open that link.", {
-      badge: "Publish first",
-      tone: "warning",
-      signedIn: false
+    const message = "Google sign-in needs an HTTPS hosted page. Upload this full index.html to GitHub Pages or Firebase Hosting, then open that link.";
+    setCloudStatus(message, { badge: "Publish first", tone: "warning", signedIn: false });
+    lockApp({
+      title: "Publish the app first",
+      message: "Google login cannot run from a file opened in Downloads.",
+      button: "Check again",
+      error: message,
+      icon: "🌐"
     });
-    toast("Publish the app before Google login");
     return;
   }
+
+  lockApp({
+    title: "Opening Google sign-in…",
+    message: "Choose the Google/Gmail account that should own this PocketPlan data.",
+    busy: true,
+    icon: "🔒"
+  });
 
   try {
     await signInWithPopup(auth, googleProvider);
   } catch (error) {
     const code = errorCode(error);
 
-    // Some browsers block auth popups. Redirect is the fallback in that case.
+    // Some mobile/in-app browsers block popups. Redirect keeps the same login flow.
     if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
       try {
         await signInWithRedirect(auth, googleProvider);
         return;
       } catch (redirectError) {
-        displayFirebaseError(redirectError, "Google login");
+        displayFirebaseError(redirectError, "Google login", { lock: true });
         return;
       }
     }
 
-    displayFirebaseError(error, "Google login");
+    displayFirebaseError(error, "Google login", { lock: true });
   }
 }
 
 async function handleCloudButton() {
   if (currentUser) {
     await forceSyncNow();
+    return;
+  }
+  await startGoogleSignIn();
+}
+
+async function handleGateButton() {
+  if (currentUser) {
+    lockApp({
+      title: "Connecting to your PocketPlan…",
+      message: "Loading the latest private cloud data for this Google account.",
+      busy: true,
+      icon: "☁️"
+    });
+    subscribeToCloud();
     return;
   }
   await startGoogleSignIn();
@@ -588,7 +724,7 @@ async function handleSignOut() {
       unsubscribeCloud = null;
     }
     await signOut(auth);
-    toast("Signed out. Local data remains on this browser.");
+    toast("Signed out. Sign in again to continue.");
   } catch (error) {
     displayFirebaseError(error, "Sign out");
   }
@@ -598,19 +734,14 @@ async function setupCloudSync() {
   document.getElementById("syncBtn").onclick = handleCloudButton;
   document.getElementById("syncNowBtn").onclick = forceSyncNow;
   document.getElementById("signOutBtn").onclick = handleSignOut;
+  document.getElementById("authGateButton").onclick = handleGateButton;
 
-  if (isHosted()) {
-    setCloudStatus("Sign in with Google/Gmail to load the same tracker data on another browser or phone.", {
-      badge: "Local only",
-      signedIn: false
-    });
-  } else {
-    setCloudStatus("You are opening this as a local file. Records work locally, but Google login and cloud saving require a hosted HTTPS link.", {
-      badge: "Publish first",
-      tone: "warning",
-      signedIn: false
-    });
-  }
+  lockApp({
+    title: "Checking your login…",
+    message: "PocketPlan checks your saved Google/Gmail login before opening the dashboard.",
+    busy: true,
+    icon: "🔐"
+  });
 
   try {
     await setPersistence(auth, browserLocalPersistence);
@@ -618,7 +749,7 @@ async function setupCloudSync() {
     console.warn("Firebase auth persistence was not set.", error);
   }
 
-  getRedirectResult(auth).catch(error => displayFirebaseError(error, "Google login"));
+  getRedirectResult(auth).catch(error => displayFirebaseError(error, "Google login", { lock: true }));
 
   onAuthStateChanged(auth, user => {
     currentUser = user || null;
@@ -631,13 +762,37 @@ async function setupCloudSync() {
       }
 
       if (isHosted()) {
-        setCloudStatus("Sign in with Google/Gmail to load the same tracker data on another browser or phone.", {
-          badge: "Local only",
+        lockApp({
+          title: "Sign in to continue",
+          message: "Use your Google or Gmail account first. Your private PocketPlan data will load automatically and stay the same on other browsers.",
+          button: "Continue with Google",
+          icon: "🔐"
+        });
+        setCloudStatus("Sign in is required before opening PocketPlan.", {
+          badge: "Login required",
+          tone: "warning",
           signedIn: false
         });
+      } else {
+        const message = "This file is opened from Downloads. Upload it to GitHub Pages or Firebase Hosting, then open the HTTPS link for Google login.";
+        lockApp({
+          title: "Publish the app first",
+          message: "Google login and cloud sync require an HTTPS hosted website.",
+          button: "Check again",
+          error: message,
+          icon: "🌐"
+        });
+        setCloudStatus(message, { badge: "Publish first", tone: "warning", signedIn: false });
       }
       return;
     }
+
+    lockApp({
+      title: "Loading your PocketPlan…",
+      message: `Getting the cloud data saved under ${currentUser.email || "your Google account"}.`,
+      busy: true,
+      icon: "☁️"
+    });
 
     setCloudStatus("Connecting to your private cloud data…", {
       badge: "Syncing",
