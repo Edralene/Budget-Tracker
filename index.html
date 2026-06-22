@@ -152,6 +152,7 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
     <div class="card">
       <div class="setting"><div><b>Display Name</b><small id="nameValue">Friend</small></div><button id="changeNameBtn">Edit</button></div>
       <div class="setting"><div><b>Monthly Budget</b><small id="budgetValue">Not set yet</small></div><button id="profileBudgetBtn">Set</button></div>
+      <div class="setting"><div><b>Cloud Sync</b><small id="syncValue">Sign in to save data across your devices</small></div><button id="syncBtn">Sign in</button></div>
       <div class="setting"><div><b>Export Backup</b><small>Download all tracker data</small></div><button id="backupBtn">Export</button></div>
       <div class="setting"><div><b>Restore Backup</b><small>Load a previous .json backup</small></div><label><button type="button">Restore</button><input class="hidden" type="file" id="restoreInput" accept=".json"></label></div>
       <div class="setting"><div><b>Reset App</b><small>Delete all local records</small></div><button id="resetBtn" style="background:#fff0f0;color:#bc4d4d">Reset</button></div>
@@ -176,7 +177,46 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
 </div>
 <div class="toast" id="toast">Saved!</div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+  getRedirectResult
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+// Firebase configuration from your project
+const firebaseConfig = {
+  apiKey: "AIzaSyAX4y3ktZd3vRjrOrw8WdUfueDNuIgohqA",
+  authDomain: "budget-tracker-8db05.firebaseapp.com",
+  projectId: "budget-tracker-8db05",
+  storageBucket: "budget-tracker-8db05.firebasestorage.app",
+  messagingSenderId: "152761652899",
+  appId: "1:152761652899:web:6ea374e4964f5b3d715116",
+  measurementId: "G-83HMP46HMF"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
+
+// Analytics is optional and should not block the budget tracker if unavailable.
+try { getAnalytics(app); } catch (error) { console.info("Analytics is unavailable in this browser."); }
+
 const categories=[
   {name:"Food & Drinks",icon:"🍔",class:"food"},
   {name:"Transport",icon:"🚌",class:"transport"},
@@ -186,13 +226,26 @@ const categories=[
   {name:"Other",icon:"✨",class:"other"}
 ];
 const STORAGE="pocketplan_dashboard_insights_v3";
-const defaultState={name:"Friend",monthlyBudget:0,starterClosed:false,expenses:[],incomes:[],goals:[],savings:[]};
-let state=JSON.parse(localStorage.getItem(STORAGE)||"null")||structuredClone(defaultState);
-state.savings ||= [];
-state.goals = (state.goals || []).map(g => ({
-  ...g,
-  initialSaved: g.initialSaved ?? Number(g.saved || 0)
-}));
+const defaultState={name:"Friend",monthlyBudget:0,starterClosed:false,expenses:[],incomes:[],goals:[],savings:[],updatedAt:0};
+
+function normalizeState(raw){
+  const next={...structuredClone(defaultState), ...(raw && typeof raw==="object" ? raw : {})};
+  next.expenses=Array.isArray(next.expenses) ? next.expenses : [];
+  next.incomes=Array.isArray(next.incomes) ? next.incomes : [];
+  next.goals=Array.isArray(next.goals) ? next.goals : [];
+  next.savings=Array.isArray(next.savings) ? next.savings : [];
+  next.goals=next.goals.map(g=>({
+    ...g,
+    initialSaved:g.initialSaved ?? Number(g.saved||0)
+  }));
+  next.updatedAt=Number(next.updatedAt||0);
+  return next;
+}
+
+let state=normalizeState(JSON.parse(localStorage.getItem(STORAGE)||"null"));
+let currentUser=null;
+let cloudReady=false;
+let cloudSaveTimer=null;
 let currentTab="dashboard";
 let selectedMonth=new Date().toISOString().slice(0,7);
 let formMode="expense";
@@ -200,7 +253,88 @@ const money=n=>new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP",mi
 const id=()=>crypto?.randomUUID?.()||(Date.now().toString(36)+Math.random().toString(36).slice(2));
 const today=()=>new Date().toISOString().slice(0,10);
 const inMonth=item=>(item.date||"").slice(0,7)===selectedMonth;
-function save(){localStorage.setItem(STORAGE,JSON.stringify(state));}
+
+function saveLocalOnly(){ localStorage.setItem(STORAGE,JSON.stringify(state)); }
+function setCloudStatus(message,buttonText){
+  const label=document.getElementById("syncValue");
+  const button=document.getElementById("syncBtn");
+  if(label) label.textContent=message;
+  if(button && buttonText) button.textContent=buttonText;
+}
+function cloudRef(){ return currentUser ? doc(db,"pocketPlanUsers",currentUser.uid) : null; }
+async function writeCloudState(){
+  if(!currentUser || !cloudReady) return;
+  try{
+    await setDoc(cloudRef(),{state,updatedAt:serverTimestamp()},{merge:true});
+    setCloudStatus(`Synced as ${currentUser.email||"Google user"}`,"Sign out");
+  }catch(error){
+    console.error("Firebase sync failed",error);
+    setCloudStatus("Cloud sync unavailable — data is still saved on this device","Retry");
+  }
+}
+function queueCloudSave(){
+  if(!currentUser || !cloudReady) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(writeCloudState,450);
+}
+function save(){
+  state.updatedAt=Date.now();
+  saveLocalOnly();
+  queueCloudSave();
+}
+async function loadCloudState(){
+  if(!currentUser) return;
+  try{
+    setCloudStatus(`Syncing ${currentUser.email||"your account"}…`,"Sign out");
+    const snapshot=await getDoc(cloudRef());
+    if(snapshot.exists() && snapshot.data()?.state){
+      const remoteState=normalizeState(snapshot.data().state);
+      if(remoteState.updatedAt>state.updatedAt){
+        state=remoteState;
+        saveLocalOnly();
+        render();
+        toast("Cloud data loaded");
+      }else{
+        await writeCloudState();
+      }
+    }else{
+      await writeCloudState();
+    }
+  }catch(error){
+    console.error("Could not load cloud data",error);
+    setCloudStatus("Cloud sync unavailable — data is still saved on this device","Retry");
+  }
+}
+async function handleCloudButton(){
+  if(currentUser){
+    try{ await signOut(auth); }catch(error){ toast("Could not sign out"); }
+    return;
+  }
+  try{
+    await signInWithPopup(auth,googleProvider);
+  }catch(error){
+    // iOS/in-app browsers may block popups; redirect is the fallback.
+    if(["auth/popup-blocked","auth/operation-not-supported-in-this-environment"].includes(error.code)){
+      await signInWithRedirect(auth,googleProvider);
+      return;
+    }
+    console.error("Google sign-in failed",error);
+    toast("Google sign-in was not completed");
+  }
+}
+function setupCloudSync(){
+  document.getElementById("syncBtn").onclick=handleCloudButton;
+  getRedirectResult(auth).catch(error=>console.warn("Google redirect sign-in error",error));
+  onAuthStateChanged(auth,async user=>{
+    currentUser=user||null;
+    cloudReady=Boolean(currentUser);
+    if(!currentUser){
+      setCloudStatus("Sign in to save data across your devices","Sign in");
+      return;
+    }
+    await loadCloudState();
+  });
+}
 function toast(msg="Saved!"){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(window._toast);window._toast=setTimeout(()=>t.classList.remove("show"),1800);}
 function monthLabel(v){const [y,m]=v.split("-");return new Date(+y,+m-1,1).toLocaleDateString("en-PH",{month:"long",year:"numeric"});}
 function setupMonthSelect(){const opts=[];const d=new Date();for(let i=-12;i<=12;i++){const t=new Date(d.getFullYear(),d.getMonth()+i,1);const v=t.toISOString().slice(0,7);opts.push(`<option value="${v}" ${v===selectedMonth?"selected":""}>${monthLabel(v)}</option>`);}const sel=document.getElementById("monthSelect");sel.innerHTML=opts.join("");sel.value=selectedMonth;sel.onchange=e=>{selectedMonth=e.target.value;render();};}
@@ -435,8 +569,8 @@ document.getElementById("recordForm").addEventListener("submit",e=>{
 
 document.getElementById("addExpenseBtn").onclick=()=>openSheet("expense");document.getElementById("addIncomeBtn").onclick=()=>openSheet("income");document.getElementById("setBudgetBtn").onclick=()=>openSheet("budget");document.getElementById("addSavingBtn").onclick=()=>openSheet("saving");document.getElementById("quickAddGoal").onclick=()=>openSheet("goal");document.getElementById("profileBudgetBtn").onclick=()=>openSheet("budget");document.getElementById("changeNameBtn").onclick=()=>{const n=prompt("What name should appear in the app?",state.name);if(n===null)return;state.name=n.trim()||"Friend";save();render();toast("Name updated");};document.getElementById("clearMonthBtn").onclick=()=>{if(!confirm(`Delete all income and expenses for ${monthLabel(selectedMonth)}?`))return;state.expenses=state.expenses.filter(x=>!inMonth(x));state.incomes=state.incomes.filter(x=>!inMonth(x));state.savings=(state.savings||[]).filter(x=>!inMonth(x));save();render();toast("Month cleared");};document.getElementById("bellBtn").onclick=()=>toast("You’re all caught up!");document.getElementById("starterClose").onclick=()=>{state.starterClosed=true;save();render();};document.getElementById("thisMonthBtn").onclick=()=>{selectedMonth=new Date().toISOString().slice(0,7);setupMonthSelect();render();toast("Showing this month");};
 document.getElementById("backupBtn").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download=`pocketplan-v2-backup-${today()}.json`;a.click();URL.revokeObjectURL(a.href);toast("Backup downloaded");};
-document.getElementById("restoreInput").addEventListener("change",e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const obj=JSON.parse(reader.result);state={...structuredClone(defaultState),...obj};save();render();toast("Backup restored");}catch(err){alert("That backup file could not be read.");}};reader.readAsText(file);e.target.value="";});document.getElementById("resetBtn").onclick=()=>{if(!confirm("Delete ALL data saved in this app on this device? This cannot be undone."))return;state=structuredClone(defaultState);save();render();toast("App reset");};
-setupMonthSelect();render();setTab("dashboard");
+document.getElementById("restoreInput").addEventListener("change",e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const obj=JSON.parse(reader.result);state=normalizeState(obj);save();render();toast("Backup restored");}catch(err){alert("That backup file could not be read.");}};reader.readAsText(file);e.target.value="";});document.getElementById("resetBtn").onclick=()=>{if(!confirm("Delete ALL data saved in this app on this device? This cannot be undone."))return;state=structuredClone(defaultState);save();render();toast("App reset");};
+setupMonthSelect();render();setTab("dashboard");setupCloudSync();
 </script>
 </body>
 </html>
